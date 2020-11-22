@@ -1,0 +1,15 @@
+- hosts: undeployed
+  connection: local
+  gather_facts: false
+  vars:
+    servers:
+      - name: adventure
+        ram: 2200M
+      - name: test
+  tasks:
+    - synchronize:
+        src: /home/offz/data.zip
+        dest: /home/offz/transferred_data.zip
+      delegate_to: main
+    - aws_s3:
+        bucket: mine-in-abyss-worlds

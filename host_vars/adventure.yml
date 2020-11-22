@@ -1,0 +1,3 @@
+servers:
+  - name: adventure
+    ram: 2200M
