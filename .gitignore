@@ -2,3 +2,4 @@ private/
 *.retry
 .idea
 deployment/config/ssh_pub_key
+roles/

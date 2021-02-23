@@ -42,7 +42,6 @@
       with_items: "{{ admins }}"
 
 
-
     - name: Make server directories
       file:
         path: "{{ server_dir }}"
@@ -88,3 +87,5 @@
         name: "minecraft@{{ item.name }}"
         enabled: true
       with_items: "{{ servers }}"
+
+    - include: tasks/config-updater.yml
