@@ -1,0 +1,85 @@
+services:
+  filebrowser:
+    image: hurlenko/filebrowser
+    # user: "${UID}:${GID}"
+    networks:
+      - "portainer_traefik"
+    volumes:
+      - filebrowser:/data/config
+      - velocity:/data/velocity
+      - survival:/data/survival
+      - build:/data/build
+      - dev:/data/dev
+      - archive:/data/archive
+    environment:
+      - FB_BASEURL=/filebrowser
+    restart: always
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fbrowser.rule=Host(`fbrowser.localhost`)"
+      - "traefik.http.routers.fbrowser.entrypoints=websecure"
+      - "traefik.http.services.fbrowser.loadbalancer.server.port=8080"
+      - "traefik.http.routers.fbrowser.service=fbrowser"
+      - "traefik.http.routers.fbrowser.tls.certresolver=leresolver"
+
+  velocity:
+    image: itzg/bungeecord
+    networks:
+      - minecraft
+    ports:
+      - 25565:25577
+    volumes:
+      - velocity
+    environment:
+      TYPE: VELOCITY
+      MEMORY: "512m"
+
+  survival:
+    image: ghcr.io/mineinabyss/papermc_dev:master
+    networks:
+      - minecraft
+    environment:
+      SERVER_NAME: "survival"
+      EULA: "TRUE"
+      TYPE: "PAPER"
+      VERSION: "1.20.1"
+      EXEC_DIRECTLY: "TRUE"
+      USE_AIKAR_FLAGS: "TRUE"
+      MEMORY: "4G"
+      CONFIG_PULL_BRANCH: "develop"
+    volumes:
+      - survival:/data
+    tty: true
+    stdin_open: true
+    restart: unless-stopped
+
+#  backup:
+#    image: itzg/mc-backup
+#    environment:
+#      RCON_HOST: mc
+#      BACKUP_METHOD: restic
+#      RESTIC_PASSWORD: password
+#      RESTIC_REPOSITORY: rclone:CFG_NAME:BUCKET_NAME
+#    volumes:
+#      # mount volume pre-configured using a host mounted file
+#      - ./rclone.conf:/config/rclone/rclone.conf
+#      # or configure one into a named volume using
+#      # docker run -it --rm -v rclone-config:/config/rclone rclone/rclone config
+#      # and change the above to
+#      # - rclone-config:/config/rclone
+#      - mc:/data:ro
+#      - backups:/backup
+
+
+volumes:
+  filebrowser:
+  velocity:
+  survival:
+  build:
+  dev:
+  archive:
+
+networks:
+  minecraft:
+  portainer_traefik:
+    external: true

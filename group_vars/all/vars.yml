@@ -1,0 +1,29 @@
+hostname: '{{ inventory_hostname }}'
+timezone: 	America/Toronto
+ntp_timezone: '{{ timezone }}'
+locale: en_US.UTF-8
+keyboard_layout: us
+
+# SSH (geerlingguy.security)
+security_ssh_port: 17072
+security_sudoers_passwordless: ['{{ username }}']
+security_autoupdate_reboot_time: '03:00'
+
+# Custom variables
+minecraft_port: 25565
+
+# Packages
+extra_packages:
+  - fish
+  - htop
+  - git
+  - rsync
+  - ncdu
+  - ufw
+
+# Docker apps
+docker_dir: /opt/docker/data
+docker_compose_dir: /opt/docker/compose
+
+services_remove_orphans: true
+shell: /usr/bin/fish

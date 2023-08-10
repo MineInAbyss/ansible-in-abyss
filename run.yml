@@ -1,0 +1,10 @@
+- hosts: maple
+  vars_files:
+    - "{{ lookup('env', 'ANSIBLE_PRIVATE') }}/vault.yml"
+  become: yes
+
+  roles:
+      - role: system
+      - role: geerlingguy.security
+      - role: geerlingguy.docker
+      - name: containers
