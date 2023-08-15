@@ -1,4 +1,4 @@
-- hosts: maple
+- hosts: rootserver
   vars_files:
     - "{{ lookup('env', 'ANSIBLE_PRIVATE') }}/vault.yml"
   become: yes

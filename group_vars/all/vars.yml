@@ -27,3 +27,6 @@ docker_compose_dir: /opt/docker/compose
 
 services_remove_orphans: true
 shell: /usr/bin/fish
+
+# Traefik
+internal_domain_root: internal.mineinabyss.com
