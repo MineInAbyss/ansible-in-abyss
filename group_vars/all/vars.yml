@@ -28,5 +28,8 @@ docker_compose_dir: /opt/docker/compose
 services_remove_orphans: true
 shell: /usr/bin/fish
 
-# Traefik
+# Traefik and oauth config
 internal_domain_root: internal.mineinabyss.com
+oauth2_proxy:
+  github_org: 'MineInAbyss'
+  github_teams: 'staff' # Comma separated global team whitelist

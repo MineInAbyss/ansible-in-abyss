@@ -22,7 +22,7 @@ Set `ANSIBLE_PRIVATE` to point to a path with `vault.yml` inside it for secrets 
 
 Set up inventory (playbook will run on a host/group named `rootserver`) and vault password in a system ansible.cgf file (ex in `/etc/ansible/ansible.cfg`):
 
-```toml
+```properties
 [defaults]
 vault_password_file=/path/to/vault_pass
 inventory=/path/to/inventory.ini
