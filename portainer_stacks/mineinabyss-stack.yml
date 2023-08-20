@@ -7,54 +7,50 @@ services:
     networks:
       - "portainer_traefik"
     volumes:
-      - filebrowser:/config
-      - velocity:/data/velocity
-      - survival:/data/survival
-      - build:/data/build
-      - dev:/data/dev
-      - archive:/data/archive
-    environment:
-      - FB_BASEURL=/filebrowser
+      - "{{ docker_dir }}/filebrowser:/config"
+      - "{{ docker_dir }}/minecraft:/data/minecraft"
     restart: always
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`files.{{ internal_domain_root }}`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.services.frontend.loadbalancer.server.port=8080"
-      - "traefik.http.routers.frontend.service=frontend"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.filebrowser.rule=Host(`files.{{ internal_domain_root }}`)"
+      - "traefik.http.routers.filebrowser.entrypoints=websecure"
+      - "traefik.http.services.filebrowser.loadbalancer.server.port=8080"
+      - "traefik.http.routers.filebrowser.service=frontend"
+      - "traefik.http.routers.filebrowser.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.filebrowser.middlewares=oauth@docker"
 
   velocity:
-    image: ghcr.io/mineinabyss/proxy:master
+    image: mineinabyss-proxy #ghcr.io/mineinabyss/proxy:master
     container_name: velocity
     networks:
       - minecraft
     ports:
-      - 25565:25577
+      - "25565:25577"
     volumes:
-      - velocity
+      - "{{ docker_dir }}/minecraft/velocity:/data"
+      - "{{ docker_dir }}/server-configs/velocity:/server-config"
     environment:
       SERVER_NAME: "velocity"
       TYPE: VELOCITY
       MEMORY: "512m"
       ANSIBLE_PULL_BRANCH: develop
 
-  survival:
+  minecraft-survival:
     image: ghcr.io/mineinabyss/minecraft:master
-    container_name: minecraft-survival
     networks:
       - minecraft
     environment:
       SERVER_NAME: "survival"
-      ANSIBLE_PULL_BRANCH: "develop"
       EULA: "TRUE"
       TYPE: "PAPER"
       VERSION: "1.20.1"
 #      EXEC_DIRECTLY: "TRUE"
       USE_AIKAR_FLAGS: "TRUE"
       MEMORY: "4G"
+      ANSIBLE_PULL_BRANCH: "develop"
     volumes:
-      - survival:/data
+      - "{{ docker_dir }}/minecraft/survival:/data"
+      - "{{ docker_dir }}/server-configs/papermc:/server-config"
     tty: true
     stdin_open: true
     restart: unless-stopped
@@ -79,11 +75,6 @@ services:
 
 volumes:
   filebrowser:
-  velocity:
-  survival:
-  build:
-  dev:
-  archive:
 
 networks:
   minecraft:
