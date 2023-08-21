@@ -1,3 +1,0 @@
-- name: ansible-pull server config playbook from GitHub and let it set itself up
-  command: 'ansible-pull -U "https://github.com/MineInAbyss/server-config.git" -d "/opt/mineinabyss-configs" --only-if-changed'
-  become: true

@@ -1,0 +1,32 @@
+- name: Set the name of a sudo group
+  set_fact:
+    sudo_group: sudo
+
+- name: Ensure the necessary groups exist
+  group:
+    name: "{{ item }}"
+    state: present
+  loop:
+      - "{{ username }}"
+      - docker
+   
+- name: Create a login user
+  user:
+    name: "{{ username }}"
+    groups:
+#      - "{{ sudo_group }}"
+      - docker
+      - users
+    state: present
+    append: true
+
+- name: Copy the public SSH key 
+  authorized_key:
+    user: "{{ username }}"
+    state: present
+    key: "{{ ssh_public_key }}"
+
+- name: Set the default shell
+  user: 
+    name: "{{ username }}"
+    shell: "{{ shell }}"
