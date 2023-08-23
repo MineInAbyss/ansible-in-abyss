@@ -1,6 +1,6 @@
-- hosts: rootserver
+- hosts: "root"
   vars_files:
-    - "{{ lookup('env', 'ANSIBLE_PRIVATE') }}/vault.yml"
+    - "{{ lookup('env', 'ANSIBLE_PRIVATE') }}/mineinabyss/vault.yml"
   become: yes
 
   roles:

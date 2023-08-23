@@ -3,7 +3,6 @@ services:
   filebrowser:
     image: hurlenko/filebrowser
     container_name: filebrowser
-    # user: "${UID}:${GID}"
     networks:
       - "portainer_traefik"
     volumes:
@@ -20,20 +19,23 @@ services:
       - "traefik.http.routers.filebrowser.middlewares=oauth@docker"
 
   velocity:
-    image: mineinabyss-proxy #ghcr.io/mineinabyss/proxy:master
+    image: ghcr.io/mineinabyss/proxy:master
     container_name: velocity
     networks:
       - minecraft
     ports:
       - "25565:25577"
     volumes:
-      - "{{ docker_dir }}/minecraft/velocity:/data"
+      - "{{ docker_dir }}/minecraft/velocity:/server"
       - "{{ docker_dir }}/server-configs/velocity:/server-config"
     environment:
       SERVER_NAME: "velocity"
       TYPE: VELOCITY
       MEMORY: "512m"
       ANSIBLE_PULL_BRANCH: develop
+    restart: unless-stopped
+    secrets:
+      - velocity_forwarding_secret
 
   minecraft-survival:
     image: ghcr.io/mineinabyss/minecraft:master
@@ -44,16 +46,19 @@ services:
       EULA: "TRUE"
       TYPE: "PAPER"
       VERSION: "1.20.1"
-#      EXEC_DIRECTLY: "TRUE"
+      #      EXEC_DIRECTLY: "TRUE"
       USE_AIKAR_FLAGS: "TRUE"
       MEMORY: "4G"
-      ANSIBLE_PULL_BRANCH: "develop"
+      ANSIBLE_PULL_BRANCH: templates
+      ONLINE_MODE: "false"
     volumes:
       - "{{ docker_dir }}/minecraft/survival:/data"
       - "{{ docker_dir }}/server-configs/papermc:/server-config"
     tty: true
     stdin_open: true
     restart: unless-stopped
+    secrets:
+      - velocity_forwarding_secret
 
 #  backup:
 #    image: itzg/mc-backup
@@ -80,3 +85,7 @@ networks:
   minecraft:
   portainer_traefik:
     external: true
+
+secrets:
+  velocity_forwarding_secret:
+    file: "{{ docker_compose_dir }}/secrets/velocity_forwarding_secret"
