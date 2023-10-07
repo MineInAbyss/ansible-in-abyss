@@ -30,5 +30,6 @@ shell: /usr/bin/fish
 #internal_domain_root: internal.mineinabyss.com
 internal_domain_root: localhost
 oauth2_proxy_public:
+  enabled: true
   github_org: 'MineInAbyss'
   github_teams: 'staff' # Comma separated global team whitelist

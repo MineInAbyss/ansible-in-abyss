@@ -1,0 +1,14 @@
+- name: Ensure stacks folder exists
+  ansible.builtin.file:
+    path: "{{ item }}"
+    owner: "{{ docker_user }}"
+    group: "{{ docker_user }}"
+    state: directory
+  loop:
+    - "{{ docker_compose_dir }}/stacks"
+
+- name: Template stacks
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ docker_compose_dir }}/stacks/{{ item.path }}"
+  with_filetree: "templates/"

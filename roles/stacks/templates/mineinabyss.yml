@@ -63,23 +63,19 @@ services:
 #  backup:
 #    image: itzg/mc-backup
 #    environment:
-#      RCON_HOST: mc
+#      RCON_HOST: minecraft-survival
 #      BACKUP_METHOD: restic
-#      RESTIC_PASSWORD: password
-#      RESTIC_REPOSITORY: rclone:CFG_NAME:BUCKET_NAME
+#      RESTIC_PASSWORD: "{{ restic.password }}"
+#      RESTIC_REPOSITORY: rclone:backup:survival
 #    volumes:
-#      # mount volume pre-configured using a host mounted file
-#      - ./rclone.conf:/config/rclone/rclone.conf
-#      # or configure one into a named volume using
-#      # docker run -it --rm -v rclone-config:/config/rclone rclone/rclone config
-#      # and change the above to
-#      # - rclone-config:/config/rclone
-#      - mc:/data:ro
-#      - backups:/backup
+#      - "{{ docker_compose_dir }}/secrets/rclone.conf:/config/rclone/rclone.conf:ro"
+#      - "{{ docker_dir }}/minecraft/survival:/data:ro"
+#      - "backups:/backup"
 
 
 volumes:
   filebrowser:
+#  backups:
 
 networks:
   minecraft:

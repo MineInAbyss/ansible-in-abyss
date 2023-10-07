@@ -8,3 +8,4 @@
       - role: geerlingguy.security
       - role: geerlingguy.docker
       - name: containers
+      - name: stacks
