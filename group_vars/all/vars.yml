@@ -27,8 +27,7 @@ services_remove_orphans: true
 shell: /usr/bin/fish
 
 # Traefik and oauth config
-#internal_domain_root: internal.mineinabyss.com
-internal_domain_root: localhost
+internal_domain_root: internal.mineinabyss.com
 oauth2_proxy_public:
   enabled: true
   github_org: 'MineInAbyss'

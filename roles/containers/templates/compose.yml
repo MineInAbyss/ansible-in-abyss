@@ -8,7 +8,7 @@ services:
       - traefik
     environment:
       CLOUDFLARE_EMAIL: "{{ cloudflare_email }}"
-      CLOUDFLARE_DNS_API_TOKEN: "{{ cloudflare_api_key }}"
+      CLOUDFLARE_API_KEY: "{{ cloudflare_api_key }}"
     command:
       # Tell Traefik to discover containers using the Docker API
       - --providers.docker=true
@@ -21,8 +21,8 @@ services:
       - --entrypoints.web.address=:80
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      # Set up the TLS configuration for our websecure listener
       - --entrypoints.websecure.address=:443
+      # Set up the TLS configuration for our websecure listener
       - --entrypoints.websecure.http.tls=true
       - --entrypoints.websecure.http.tls.certResolver=letsencrypt
       - --entrypoints.websecure.http.tls.domains[0].main={{ internal_domain_root }}
@@ -105,6 +105,13 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.route-authproxy.rule=(Host(`auth.{{ internal_domain_root }}`) && PathPrefix(`/oauth2/`)) || (PathPrefix(`/oauth2/`))"
       - "traefik.http.services.route-authproxy.loadbalancer.server.port=4180"
+
+  watchtower:
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_NO_RESTART: "true"
 volumes:
   portainer_data:
   acme_data:

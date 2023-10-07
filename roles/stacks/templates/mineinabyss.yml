@@ -4,7 +4,7 @@ services:
     image: hurlenko/filebrowser
     container_name: filebrowser
     networks:
-      - "portainer_traefik"
+      - "compose_traefik"
     volumes:
       - "{{ docker_dir }}/filebrowser:/config"
       - "{{ docker_dir }}/minecraft:/data/minecraft"
@@ -79,7 +79,7 @@ volumes:
 
 networks:
   minecraft:
-  portainer_traefik:
+  compose_traefik:
     external: true
 
 secrets:

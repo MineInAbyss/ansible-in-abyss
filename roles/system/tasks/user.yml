@@ -1,6 +1,7 @@
 - name: "Create login user: {{ username }}"
   user:
     name: "{{ username }}"
+    password: "{{ password_hash }}"
     groups:
 #      - "{{ sudo_group }}"
     state: present
