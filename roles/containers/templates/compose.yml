@@ -125,7 +125,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      WATCHTOWER_NO_RESTART: "true"
+      WATCHTOWER_MONITOR_ONLY: "true"
 volumes:
   portainer_data:
   acme_data:
