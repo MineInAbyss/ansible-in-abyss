@@ -1,2 +1,8 @@
+- include_tasks: docker-user.yml
 - include_tasks: essential.yml
 - include_tasks: user.yml
+  vars:
+    username: "{{ item.name }}"
+    authorized_key: "{{ item.ssh_public_key }}"
+    password_hash: "{{ item.password_hash }}"
+  loop: "{{ ssh_users }}"

@@ -3,12 +3,13 @@ version: '3.2'
 services:
   traefik:
     container_name: traefik
+    restart: always
     image: "traefik:latest"
     networks:
       - traefik
     environment:
       CLOUDFLARE_EMAIL: "{{ cloudflare_email }}"
-      CLOUDFLARE_DNS_API_TOKEN: "{{ cloudflare_api_key }}"
+      CLOUDFLARE_API_KEY: "{{ cloudflare_api_key }}"
     command:
       # Tell Traefik to discover containers using the Docker API
       - --providers.docker=true
@@ -21,12 +22,12 @@ services:
       - --entrypoints.web.address=:80
       - --entrypoints.web.http.redirections.entrypoint.to=websecure
       - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      # Set up the TLS configuration for our websecure listener
       - --entrypoints.websecure.address=:443
+      # Set up the TLS configuration for our websecure listener
       - --entrypoints.websecure.http.tls=true
       - --entrypoints.websecure.http.tls.certResolver=letsencrypt
-      - --entrypoints.websecure.http.tls.domains[0].main={{ internal_domain_root }}
-      - --entrypoints.websecure.http.tls.domains[0].sans=*.{{ internal_domain_root }}
+      - --entrypoints.websecure.http.tls.domains[0].main={{ domain_root }}
+      - --entrypoints.websecure.http.tls.domains[0].sans=*.{{ domain_root }}
     ports:
       - "80:80"
       - "443:443"
@@ -35,53 +36,52 @@ services:
       - "acme_data:/acme_data/"
     labels:
       # Router - http-catchall - redirect to https
-      - "traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)"
-      - "traefik.http.routers.http-catchall.entrypoints=web"
-      - "traefik.http.routers.http-catchall.middlewares=redirect-to-https"
+      traefik.http.routers.http-catchall.rule: hostregexp(`{host:.+}`)
+      traefik.http.routers.http-catchall.entrypoints: web
+      traefik.http.routers.http-catchall.middlewares: redirect-to-https
       # Middleware - redirect-to-https
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      # Middleware - oauth - chain verify and signin
-      - "traefik.http.middlewares.oauth.chain.middlewares=oauth-signin,oauth-verify"
-      # Middleware - oauth-verify - points to internal ip for oauth2proxy
-      - "traefik.http.middlewares.oauth-verify.forwardauth.address=http://oauth2proxy:4180/oauth2/auth"
-      - "traefik.http.middlewares.oauth-verify.forwardauth.authResponseHeaders=X-Auth-Request-Preferred-Username, X-Auth-Request-User, X-Auth-Request-Email"
-      #      - "traefik.http.middlewares.oauth-verify.forwardauth.trustForwardHeader=true"
-      # Middleware - oauth-signin - sign in page for oauth2proxy
-      - "traefik.http.middlewares.oauth-signin.errors.service=route-authproxy@docker"
-      - "traefik.http.middlewares.oauth-signin.errors.status=401"
-      - "traefik.http.middlewares.oauth-signin.errors.query=/oauth2/sign_in"
+      traefik.http.middlewares.redirect-to-https.redirectscheme.scheme: https
 
   agent:
+    image: portainer/agent
+    restart: always
     networks:
       - traefik
-    image: portainer/agent
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - /var/lib/docker/volumes:/var/lib/docker/volumes
 
   portainer:
-    image: portainer/portainer-ce
+    image: portainer/portainer-ee
+    restart: always
     networks:
       - traefik
     command: -H tcp://agent:9001 --tlsskipverify
     labels:
       # Frontend
-      - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`portainer.{{ internal_domain_root }}`)"
-      - "traefik.http.routers.frontend.entrypoints=websecure"
-      - "traefik.http.routers.frontend.service=frontend"
-      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.frontend.middlewares=oauth@docker"
-      - "traefik.http.services.frontend.loadbalancer.server.port=9000"
+      traefik.enable: true
+      traefik.http.services.frontend.loadbalancer.server.port: 9000
+      traefik.http.routers.frontend.rule: Host(`panel.{{ internal_domain_root }}`)
+      traefik.http.routers.frontend.entrypoints: websecure
+      traefik.http.routers.frontend.tls.certresolver: letsencrypt
+#      traefik.http.routers.frontend.middlewares: oauth@docker
+      traefik.http.routers.frontend.service: frontend
+      # Homepage
+      homepage.group: Admin
+      homepage.name: Portainer
+      homepage.icon: portainer.png
+      homepage.href: "https://panel.{{ internal_domain_root }}"
+      homepage.description: Manage Docker containers
     volumes:
       - portainer_data:/data
   oauth2proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:latest
+    restart: always
     networks:
       - traefik
     environment:
       OAUTH2_PROXY_HTTP_ADDRESS: '0.0.0.0:4180'
-      OAUTH2_PROXY_COOKIE_SECRET: '{{ oauth2_proxy_cookie_secret }}'
+      OAUTH2_PROXY_COOKIE_SECRET: '{{ oauth2_proxy.cookie_secret }}'
       OAUTH2_PROXY_COOKIE_DOMAINS: '.{{ internal_domain_root }}' # Required so cookie can be read on all subdomains.
       OAUTH2_PROXY_WHITELIST_DOMAINS: '.{{ internal_domain_root }}' # Required to allow redirection back to original requested target.
       # Configure to use GitHub
@@ -89,22 +89,43 @@ services:
       OAUTH2_PROXY_CLIENT_ID: '{{ oauth2_proxy.client_id }}'
       OAUTH2_PROXY_CLIENT_SECRET: '{{ oauth2_proxy.client_secret }}'
       OAUTH2_PROXY_EMAIL_DOMAINS: '*'
-      OAUTH2_PROXY_GITHUB_ORG: '{{ oauth2_proxy.github_org }}'
-      OAUTH2_PROXY_GITHUB_TEAM: '{{ oauth2_proxy.github_teams }}'
+      OAUTH2_PROXY_GITHUB_ORG: '{{ oauth2_proxy_public.github_org }}'
+      OAUTH2_PROXY_GITHUB_TEAM: '{{ oauth2_proxy_public.github_teams }}'
       OAUTH2_PROXY_REDIRECT_URL: 'https://auth.{{ internal_domain_root }}/oauth2/callback'
       OAUTH2_PROXY_SCOPE: "user:email"
 
-      #      OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST: "true"
-      #      OAUTH2_PROXY_COOKIE_CSRF_EXPIRE: '5m'
+#      OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST: "true"
+#      OAUTH2_PROXY_COOKIE_CSRF_EXPIRE: '6h'
       OAUTH2_PROXY_CUSTOM_TEMPLATES_DIR: "/templates"
       OAUTH2_PROXY_REVERSE_PROXY: "true"
       OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
     volumes:
       - "{{ docker_compose_dir }}/config/oauth2-proxy/templates:/templates:ro"
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.route-authproxy.rule=(Host(`auth.{{ internal_domain_root }}`) && PathPrefix(`/oauth2/`)) || (PathPrefix(`/oauth2/`))"
-      - "traefik.http.services.route-authproxy.loadbalancer.server.port=4180"
+      traefik.enable: 'true'
+      traefik.http.routers.route-authproxy.rule: (Host(`auth.{{ internal_domain_root }}`) && PathPrefix(`/oauth2/`)) || (PathPrefix(`/oauth2/`))
+      traefik.http.services.route-authproxy.loadbalancer.server.port: '4180'
+      
+      # Middleware - oauth - chain verify and signin
+      traefik.http.middlewares.oauth.chain.middlewares: oauth-signin,oauth-verify
+      
+      # Middleware - oauth-verify - points to internal ip for oauth2proxy
+      traefik.http.middlewares.oauth-verify.forwardauth.address: http://oauth2proxy:4180/oauth2/auth
+      traefik.http.middlewares.oauth-verify.forwardauth.authResponseHeaders: X-Auth-Request-Preferred-Username, X-Auth-Request-User, X-Auth-Request-Email
+      traefik.http.middlewares.oauth-verify.forwardAuth.trustForwardHeader: 'true'
+      
+      # Middleware - oauth-signin - sign in page for oauth2proxy
+      traefik.http.middlewares.oauth-signin.errors.service: route-authproxy@docker
+      traefik.http.middlewares.oauth-signin.errors.status: 401
+      traefik.http.middlewares.oauth-signin.errors.query: /oauth2/sign_in
+
+  watchtower:
+    image: containrrr/watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      WATCHTOWER_NO_RESTART: "true"
 volumes:
   portainer_data:
   acme_data:

@@ -1,0 +1,14 @@
+- name: Ensure the necessary groups exist
+  group:
+    gid: "{{ docker_user_uid }}"
+    name: docker
+    state: present
+
+- name: Create a user for our docker volumes
+  user:
+    name: docker
+    uid: "{{ docker_user_uid }}"
+    groups:
+      - docker
+    state: present
+    append: true
