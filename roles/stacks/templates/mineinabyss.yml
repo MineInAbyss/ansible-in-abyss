@@ -1,81 +1,94 @@
-version: '3'
+version: '2'
+x-labels-homepage: &default-homepage
+  homepage.group: Minecraft
+  homepage.icon: minecraft.png
+  homepage.showStats: 'true'
+
+x-labels-daily-restarts: &daily-restarts
+  ofelia.enabled: "true"
+  ofelia.job-exec.restart.schedule: "0 1 * * *"
+  ofelia.job-exec.restart.command: ${RESTART_COMMAND}
+
+x-service-velocity-defaults: &velocity-network
+  networks:
+    - minecraft
+  restart: unless-stopped
+  tty: true
+  stdin_open: true
+  secrets:
+    - velocity_forwarding_secret
+
+x-environment-minecraft-defaults: &minecraft-env-defaults
+  EULA: "TRUE"
+  TYPE: "PAPER"
+  EXEC_DIRECTLY: "TRUE"
+  USE_AIKAR_FLAGS: "TRUE"
+  ONLINE_MODE: "FALSE"
+
 services:
-  filebrowser:
-    image: hurlenko/filebrowser
-    container_name: filebrowser
-    networks:
-      - "compose_traefik"
-    volumes:
-      - "{{ docker_dir }}/filebrowser:/config"
-      - "{{ docker_dir }}/minecraft:/data/minecraft"
-    restart: always
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.filebrowser.rule=Host(`files.{{ internal_domain_root }}`)"
-      - "traefik.http.routers.filebrowser.entrypoints=websecure"
-      - "traefik.http.services.filebrowser.loadbalancer.server.port=8080"
-      - "traefik.http.routers.filebrowser.service=frontend"
-      - "traefik.http.routers.filebrowser.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.filebrowser.middlewares=oauth@docker"
 
   velocity:
+    <<: *velocity-network
     image: ghcr.io/mineinabyss/proxy:master
-    container_name: velocity
-    networks:
-      - minecraft
+    cpuset: '0-1'
     ports:
       - "25565:25577"
     volumes:
-      - "{{ docker_dir }}/minecraft/velocity:/server"
-      - "{{ docker_dir }}/server-configs/velocity:/server-config"
+      - "${DIR_MINECRAFT}/velocity:/server"
+      - "${DIR_CONFIGS}/velocity:/server-config"
     environment:
       SERVER_NAME: "velocity"
       TYPE: VELOCITY
       MEMORY: "512m"
       ANSIBLE_PULL_BRANCH: develop
-    restart: unless-stopped
-    secrets:
-      - velocity_forwarding_secret
+    labels:
+      <<: *default-homepage
+      homepage.name: Velocity
 
-  minecraft-survival:
+  minecraft-dev:
+    <<: *velocity-network
     image: ghcr.io/mineinabyss/minecraft:master
+    cpuset: '2-3'
     networks:
       - minecraft
     environment:
-      SERVER_NAME: "survival"
-      EULA: "TRUE"
-      TYPE: "PAPER"
+      <<: *minecraft-env-defaults
+      SERVER_NAME: "dev"
       VERSION: "1.20.1"
-      #      EXEC_DIRECTLY: "TRUE"
-      USE_AIKAR_FLAGS: "TRUE"
       MEMORY: "4G"
       ANSIBLE_PULL_BRANCH: templates
-      ONLINE_MODE: "false"
     volumes:
-      - "{{ docker_dir }}/minecraft/survival:/data"
-      - "{{ docker_dir }}/server-configs/papermc:/server-config"
-    tty: true
-    stdin_open: true
-    restart: unless-stopped
-    secrets:
-      - velocity_forwarding_secret
+      - "${DIR_MINECRAFT}/dev:/data"
+      - "${DIR_CONFIGS}/dev:/server-config"
+    labels:
+      <<: [*default-homepage, *daily-restarts]
+      homepage.name: Dev
 
-#  backup:
-#    image: itzg/mc-backup
-#    environment:
-#      RCON_HOST: minecraft-survival
-#      BACKUP_METHOD: restic
-#      RESTIC_PASSWORD: "{{ restic.password }}"
-#      RESTIC_REPOSITORY: rclone:backup:survival
-#    volumes:
-#      - "{{ docker_compose_dir }}/secrets/rclone.conf:/config/rclone/rclone.conf:ro"
-#      - "{{ docker_dir }}/minecraft/survival:/data:ro"
-#      - "backups:/backup"
+  backup-dev:
+    image: itzg/mc-backup
+    environment:
+      RCON_HOST: minecraft-dev
+      BACKUP_METHOD: restic
+      RESTIC_PASSWORD: ${RESTIC_PASSWORD}
+      RESTIC_REPOSITORY: rclone:backup:dev
+    volumes:
+      - /opt/docker/compose/secrets/rclone.conf:/config/rclone/rclone.conf:ro
+      - /opt/docker/data/minecraft/dev/world:/data:ro
+      - /opt/docker/compose/secrets/rclone.conf:/config/rclone/rclone.conf
+      - backup-dev:/backup
 
+  ofelia:
+    image: mcuadros/ofelia:latest
+    depends_on:
+      - minecraft-dev
+      - velocity
+    command: daemon --docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
 
 volumes:
   filebrowser:
-#  backups:
+  backup-dev:
 
 networks:
   minecraft:
@@ -84,4 +97,4 @@ networks:
 
 secrets:
   velocity_forwarding_secret:
-    file: "{{ docker_compose_dir }}/secrets/velocity_forwarding_secret"
+    file: "/opt/docker/compose/secrets/velocity_forwarding_secret"

@@ -6,22 +6,37 @@
     state: directory
   loop:
     - "{{ docker_compose_dir }}"
-    - "{{ docker_compose_dir }}/secrets"
     - "{{ docker_dir }}"
-- name: Copy the compose file
-  template: 
-    src: templates/compose.yml
-    dest: "{{ docker_compose_dir }}/compose.yml"
+#    - "{{ docker_compose_dir }}/secrets"
+
+- name: Create template directories
+  ansible.builtin.file:
+    path: "{{ docker_compose_dir }}/{{ item.path }}"
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_user }}"
+#    mode: '{{ item.mode }}'
+  with_community.general.filetree: templates/
+  when: item.state == 'directory'
+
+- name: Copy templates to docker compose dir
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ docker_compose_dir }}/{{ item.path }}"
+    owner: "{{ docker_user }}"
+    group: "{{ docker_user }}"
+  with_filetree: "templates/"
+  when: item.state == 'file'
 
 - name: Check if velocity forwarding secret exists
   ansible.builtin.stat:
-      path: "{{ docker_compose_dir }}/secrets/velocity_forwarding_secret"
+    path: "{{ docker_compose_dir }}/secrets/velocity_forwarding_secret"
   register: secret_file
 
 - name: Generate forwarding secret
   shell:
-      cmd: "openssl rand -hex 32 > secrets/velocity_forwarding_secret"
-      chdir: "{{ docker_compose_dir }}"
+    cmd: "openssl rand -hex 32 > secrets/velocity_forwarding_secret"
+    chdir: "{{ docker_compose_dir }}"
   when: secret_file.stat.exists == False
 
 - name: Docker-compose pull

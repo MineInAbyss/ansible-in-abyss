@@ -28,6 +28,7 @@ shell: /usr/bin/fish
 
 # Traefik and oauth config
 internal_domain_root: internal.mineinabyss.com
+domain_root: mineinabyss.com
 oauth2_proxy_public:
   enabled: true
   github_org: 'MineInAbyss'
