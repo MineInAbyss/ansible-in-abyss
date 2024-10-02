@@ -29,7 +29,7 @@ services:
       - /var/lib/docker/volumes:/var/lib/docker/volumes
 
   portainer:
-    image: portainer/portainer-ee
+    image: "portainer/portainer-ee:sts"
     restart: always
     networks:
       - traefik
@@ -45,37 +45,6 @@ services:
       traefik.http.routers.frontend.service: frontend
     volumes:
       - portainer_data:/data
-  oauth2proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:latest
-    restart: always
-    networks:
-      - traefik
-    environment:
-      OAUTH2_PROXY_HTTP_ADDRESS: '0.0.0.0:4180'
-      OAUTH2_PROXY_COOKIE_SECRET: '{{ oauth2_proxy.cookie_secret }}'
-      OAUTH2_PROXY_COOKIE_DOMAINS: '.{{ internal_domain_root }}' # Required so cookie can be read on all subdomains.
-      OAUTH2_PROXY_WHITELIST_DOMAINS: '.{{ internal_domain_root }}' # Required to allow redirection back to original requested target.
-      # Configure to use GitHub
-      OAUTH2_PROXY_PROVIDER: 'github'
-      OAUTH2_PROXY_CLIENT_ID: '{{ oauth2_proxy.client_id }}'
-      OAUTH2_PROXY_CLIENT_SECRET: '{{ oauth2_proxy.client_secret }}'
-      OAUTH2_PROXY_EMAIL_DOMAINS: '*'
-      OAUTH2_PROXY_GITHUB_ORG: '{{ oauth2_proxy_public.github_org }}'
-      OAUTH2_PROXY_GITHUB_TEAM: '{{ oauth2_proxy_public.github_teams }}'
-      OAUTH2_PROXY_REDIRECT_URL: 'https://auth.{{ internal_domain_root }}/oauth2/callback'
-      OAUTH2_PROXY_SCOPE: "user:email"
-
-      OAUTH2_PROXY_COOKIE_CSRF_PER_REQUEST: "true"
-      OAUTH2_PROXY_COOKIE_CSRF_EXPIRE: '5m'
-      OAUTH2_PROXY_CUSTOM_TEMPLATES_DIR: "/templates"
-      OAUTH2_PROXY_REVERSE_PROXY: "true"
-      OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
-    volumes:
-      - "{{ docker_compose_dir }}/config/oauth2-proxy/templates:/templates:ro"
-    labels:
-      traefik.enable: 'true'
-      traefik.http.routers.route-authproxy.rule: (Host(`auth.{{ internal_domain_root }}`) && PathPrefix(`/oauth2/`)) || (PathPrefix(`/oauth2/`))
-      traefik.http.services.route-authproxy.loadbalancer.server.port: '4180'
 
   watchtower:
     image: containrrr/watchtower
