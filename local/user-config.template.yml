@@ -1,0 +1,3 @@
+vault_location: ""
+vault_password_file: ""
+do_reboot: "true"

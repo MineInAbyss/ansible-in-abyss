@@ -1,10 +1,12 @@
 - hosts: "root"
-  vars_files:
-    - "{{ lookup('env', 'ANSIBLE_PRIVATE') }}/mineinabyss/vault.yml"
   become: yes
-
+  pre_tasks:
+    - include_vars:
+        file: "local/user-config.yml"
+    - include_vars:
+        file: "{{ vault_location }}"
   roles:
-      - role: system
-      - role: geerlingguy.security
-      - role: geerlingguy.docker
-      - name: containers
+    - role: system
+    - role: geerlingguy.security
+    - role: nickjj.docker
+    - name: containers

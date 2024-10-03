@@ -12,7 +12,7 @@
 - name: Reboot if required
   reboot:
     msg: Rebooting due to a kernel update
-  when: reboot_required_file.stat.exists
+  when: do_reboot|default("true") and reboot_required_file.stat.exists
 
 - name: Install extra packages
   package:
